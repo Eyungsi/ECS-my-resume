@@ -1,0 +1,64 @@
+name: Build and deploy image to ECR
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+env:
+  ECR_REPOSITORY: my-resume-app
+  ECS_CLUSTER: myapp-cluster
+  ECS_SERVICE: myapp-service
+  CONTAINER_NAME: nginx
+  TASK_DEFINITION: myapp-task
+  AWS_CREDS: ${{secrets.AWS_ACTION_ROLE}}
+  AWS_REGION: ${{secrets.AWS_REGION}}
+
+jobs:
+  build-and deploy:
+    runs-on: ubuntu-latest
+
+  steps:
+    - name: checkout code
+      uses: actions/checkout@v3
+
+    - name: configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{env.AWS_CREDS}}
+        aws-region: ${{env.AWS_REGION}}
+
+#login into Amzon ECR
+    - name: login to Amazon ECR
+      id: login-ECR
+      uses: aws-actions/amazon-ecr-login@v2
+
+#build and push to ECR
+    - name: build ,tag and push docker image to Amazon ECR
+      id: build-and push
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.output.registry }}
+        ECR_REPOSITORY: ${{env.ECR_REPOSITORY}}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:IMAGE_TAG .
+        echo "image=$ECR_REGISTRY/ECR_REGISTRY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+#Add trivy scan 
+    - name: scan Docker image with trivy
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ steps.build-image.output.image }}
+        format: 'table'
+        exit-code: '1' # fail the build if vulnerabilities are found
+        severity: 'CRITICAL,HIGH' #ONLY FAIL FOR CRITICAL/HIGH VULNERABILITIES
+        ignore-unfixed: true # ignore vulneraties without fixes
+        vuln-type: 'os,library' #scan both OS and packages and libraries
+    - name: push Docker image to Amazon ECR
+      if: sucess () #only if Trivy scan passes
+      run: |
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:IMAGE_TAG
