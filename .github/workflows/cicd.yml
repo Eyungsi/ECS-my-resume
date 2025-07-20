@@ -17,6 +17,7 @@ env:
   TASK_DEFINITION: myapp-task
   AWS_CREDS: ${{secrets.AWS_ACTION_ROLE}}
   AWS_REGION: ${{secrets.AWS_REGION}}
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
   build-and-deploy:
@@ -61,4 +62,4 @@ jobs:
     - name: push Docker image to Amazon ECR
       if: success() #only if Trivy scan passes
       run: |
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:IMAGE_TAG
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
