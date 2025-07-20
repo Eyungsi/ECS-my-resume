@@ -3,14 +3,13 @@ name: Build and deploy image to ECR
 on:
   push:
     branches: [main]
-  pull_request:
+  pull_request: 
     branches: [main]
 
 permissions:
   id-token: write
   contents: 
-  pull_request: write
-env:
+  env:
   ECR_REPO_NAME: my-resume-app
   ECS_CLUSTER: myapp-cluster
   ECS_SERVICE: myapp-service
