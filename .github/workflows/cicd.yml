@@ -73,11 +73,13 @@ jobs:
       run: |
         aws ecs describe-task-definition --task-definition ${{ env.TASK_DEFINITION }} \
           --query taskDefinition > task-definition.json
+
     - name: Update task definition with new ECR image
       run: |
-#Install jq if not already available
+        # Install jq if not already available
         sudo apt-get install -y jq
-#Update the image in the task definition
+        
+        # Update the image in the task definition
         jq --arg IMAGE_URI "${{ steps.build-and-push.outputs.image}}" \
           '.containerDefinitions[0].image = $IMAGE_URI | 
            del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy, .deregisteredAt)' \
