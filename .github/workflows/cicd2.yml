@@ -8,7 +8,7 @@ on:
 
 permissions:
   id-token: write
-  contents: 
+  contents: read
   env:
   ECR_REPO_NAME: my-resume-app
   ECS_CLUSTER: myapp-cluster
