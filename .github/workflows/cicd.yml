@@ -62,11 +62,11 @@ jobs:
         image-ref: 'image.tar'
         scan-type: 'fs'
         format: 'table'
-        exit-code: '0' # fail the build if vulnerabilities are found
+        exit-code: '1' # fail the build if vulnerabilities are found
         severity: 'CRITICAL,HIGH' #ONLY FAIL FOR CRITICAL/HIGH VULNERABILITIES
         ignore-unfixed: true # ignore vulneraties without fixes
         vuln-type: 'os,library' #scan both OS and packages and libraries
     - name: push Docker image to Amazon ECR
       if: success() #only if Trivy scan passes
       run: |
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker push ${{ steps.build-and-push.outputs.image}}
