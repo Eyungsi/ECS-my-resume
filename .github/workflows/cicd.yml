@@ -46,6 +46,7 @@ jobs:
         IMAGE_TAG: ${{ github.sha }}
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "image=$ECR_REGISTRY/ECR_REGISTRY:$IMAGE_TAG" >> $GITHUB_OUTPUT
         docker save $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -o image.tar
 #Get image URL
@@ -67,6 +68,4 @@ jobs:
         ignore-unfixed: true # ignore vulneraties without fixes
         vuln-type: 'os,library' #scan both OS and packages and libraries
     - name: push Docker image to Amazon ECR
-      if: success() #only if Trivy scan passes
-      run: |
-        docker push ${{ steps.build-and-push.outputs.image}}
+      if: success() #only if Trivy scan passes              
