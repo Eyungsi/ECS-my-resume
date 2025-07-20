@@ -17,6 +17,7 @@ env:
   TASK_DEFINITION: myapp-task
   AWS_CREDS: ${{secrets.AWS_ACTION_ROLE}}
   AWS_REGION: ${{secrets.AWS_REGION}}
+  IMAGE_TAG: ${{ github.sha }}
   
 jobs:
   build-and-deploy:
@@ -43,7 +44,7 @@ jobs:
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.output.registry }}
         ECR_REPOSITORY: ${{env.ECR_REPOSITORY}}
-        IMAGE_TAG: ${{ github.sha }}
+        IMAGE_TAG: ${{env.IMAGE_TAG}}
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         echo "image=$ECR_REGISTRY/ECR_REGISTRY:$IMAGE_TAG" >> $GITHUB_OUTPUT
