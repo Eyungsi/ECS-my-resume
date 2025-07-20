@@ -19,7 +19,7 @@ env:
   AWS_REGION: ${{secrets.AWS_REGION}}
 
 jobs:
-  build-and deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -39,7 +39,7 @@ jobs:
 
 #build and push to ECR
     - name: build ,tag and push docker image to Amazon ECR
-      id: build-and push
+      id: build-and-push
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.output.registry }}
         ECR_REPOSITORY: ${{env.ECR_REPOSITORY}}
