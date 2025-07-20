@@ -103,18 +103,30 @@ jobs:
       
       - name: Download current task definition
         run: |
-          aws ecs describe-task-definition --task-definition ${{ env.TASK_DEFINITION }} --query taskDefinition > task-definition.json
-      
+          aws ecs describe-task-definition --task-definition ${{ env.TASK_DEFINITION }} \
+          --query taskDefinition > task-definition.json
+
       - name: Update task definition with new ECR image
         run: |
-          jq --arg IMAGE_URI "${{ needs.Build.outputs.image-uri }}" '.containerDefinitions[0].image = $IMAGE_URI | 
-          del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy, .deregisteredAt)' task-definition.json > register-task-definition.json
-      
+        # Install jq if not already available
+          sudo apt-get install -y jq
+        
+        # Update the image in the task definition
+          jq --arg IMAGE_URI "${{ steps.build-and-push.outputs.image}}" \
+          '.containerDefinitions[0].image = $IMAGE_URI | 
+           del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy, .deregisteredAt)' \
+          task-definition.json > register-task-definition.json
+
       - name: Register new task definition
         run: |
           aws ecs register-task-definition --cli-input-json file://register-task-definition.json
-          echo "NEW_TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition ${{ env.TASK_DEFINITION }} --query 'taskDefinition.taskDefinitionArn' --output text)" >> $GITHUB_ENV
-      
+              # Get the new revision number
+             echo "NEW_TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition ${{ env.TASK_DEFINITION }} --query 'taskDefinition.taskDefinitionArn' --output text)" >> $GITHUB_ENV
+
       - name: Update ECS service
         run: |
-          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.ECS_SERVICE }} --task-definition ${{ env.NEW_TASK_DEFINITION }} --force-new-deployment
+         aws ecs update-service \
+          --cluster ${{ env.ECS_CLUSTER }} \
+          --service ${{ env.ECS_SERVICE }} \
+          --task-definition ${{ env.NEW_TASK_DEFINITION }} \
+          --force-new-deployment
