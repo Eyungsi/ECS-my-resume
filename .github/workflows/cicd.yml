@@ -13,7 +13,7 @@ env:
   ECR_REPOSITORY: my-resume-app
   ECS_CLUSTER: myapp-cluster
   ECS_SERVICE: myapp-service
-  CONTAINER_NAME: nginx
+  CONTAINER_NAME: myapp
   TASK_DEFINITION: myapp-task
   AWS_CREDS: ${{secrets.AWS_ACTION_ROLE}}
   AWS_REGION: ${{secrets.AWS_REGION}}
