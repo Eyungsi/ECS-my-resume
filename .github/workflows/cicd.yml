@@ -17,8 +17,7 @@ env:
   TASK_DEFINITION: myapp-task
   AWS_CREDS: ${{secrets.AWS_ACTION_ROLE}}
   AWS_REGION: ${{secrets.AWS_REGION}}
-  IMAGE_TAG: ${{ github.sha }}
-  
+    
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -42,9 +41,9 @@ jobs:
     - name: build ,tag and push docker image to Amazon ECR
       id: build-and-push
       env:
-        ECR_REGISTRY: ${{ steps.login-ecr.output.registry }}
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: ${{env.ECR_REPOSITORY}}
-        
+        IMAGE_TAG: ${{ github.sha }}
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         echo "image=$ECR_REGISTRY/ECR_REGISTRY:$IMAGE_TAG" >> $GITHUB_OUTPUT
