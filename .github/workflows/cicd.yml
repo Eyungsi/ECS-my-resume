@@ -47,7 +47,7 @@ jobs:
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         echo "image=$ECR_REGISTRY/ECR_REGISTRY:$IMAGE_TAG" >> $GITHUB_OUTPUT
-
+        docker save $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -o image.tar
 #Get image URL
     - name: set image URI
       id: set-image
@@ -59,7 +59,8 @@ jobs:
     - name: scan Docker image with trivy
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{ steps.build-and-push.outputs.image }}
+        image-ref: 'image.tar'
+        scan-type: 'fs'
         format: 'table'
         exit-code: '1' # fail the build if vulnerabilities are found
         severity: 'CRITICAL,HIGH' #ONLY FAIL FOR CRITICAL/HIGH VULNERABILITIES
