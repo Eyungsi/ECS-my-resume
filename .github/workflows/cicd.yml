@@ -59,6 +59,6 @@ jobs:
         ignore-unfixed: true # ignore vulneraties without fixes
         vuln-type: 'os,library' #scan both OS and packages and libraries
     - name: push Docker image to Amazon ECR
-      if: sucess () #only if Trivy scan passes
+      if: success() #only if Trivy scan passes
       run: |
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:IMAGE_TAG
