@@ -53,7 +53,7 @@ jobs:
     - name: set image URI
       id: set-image
       run: |
-        echo "IMAGE_URI=${{ steps.build-and-push.output.image }}" >> $GITHUB_ENV
+        echo "IMAGE_URI=${{ steps.build-and-push.outputs.image }}" >> $GITHUB_ENV
 
 
 #Add trivy scan 
@@ -69,44 +69,33 @@ jobs:
         vuln-type: 'os,library' #scan both OS and packages and libraries                
 
 #Deployment steps
-    - name: Download task definition
+    - name: Download current task definition
       run: |
-          aws ecs describe-task-definition --task-definition ${{ env.TASK_DEFINITION }} \
-            --query taskDefinition > task-definition.json
+        aws ecs describe-task-definition --task-definition ${{ env.TASK_DEFINITION }} \
+          --query taskDefinition > task-definition.json
 
-    - name: Update task definition
+    - name: Update task definition with new ECR image
       run: |
-          # Install jq if needed
-          sudo apt-get install -y jq
-          
-          # Verify image URI is correct
-          echo "Using image URI: ${{ steps.build-and-push.outputs.image }}"
-          
-          # Update the correct container by name
-          jq --arg IMAGE_URI "${{ steps.build-and-push.outputs.image }}" \
-            --arg CONTAINER_NAME "${{ env.CONTAINER_NAME }}" \
-            '.containerDefinitions |= map(if .name == $CONTAINER_NAME then .image = $IMAGE_URI else . end) |
-             del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy, .deregisteredAt)' \
-            task-definition.json > updated-task-definition.json
+        # Install jq if not already available
+        sudo apt-get install -y jq
+        
+        # Update the image in the task definition
+        jq --arg IMAGE_URI "${{ steps.build-and-push.outputs.image}}" \
+          '.containerDefinitions[0].image = $IMAGE_URI | 
+           del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy, .deregisteredAt)' \
+          task-definition.json > register-task-definition.json
 
-    - name: Register task definition
+    - name: Register new task definition
       run: |
-          aws ecs register-task-definition --cli-input-json file://updated-task-definition.json
-          echo "NEW_TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition ${{ env.TASK_DEFINITION }} --query 'taskDefinition.taskDefinitionArn' --output text)" >> $GITHUB_ENV
+        aws ecs register-task-definition --cli-input-json file://register-task-definition.json
+        
+        # Get the new revision number
+        echo "NEW_TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition ${{ env.TASK_DEFINITION }} --query 'taskDefinition.taskDefinitionArn' --output text)" >> $GITHUB_ENV
 
     - name: Update ECS service
       run: |
-          aws ecs update-service \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --service ${{ env.ECS_SERVICE }} \
-            --task-definition ${{ env.NEW_TASK_DEFINITION }} \
-            --force-new-deployment
-
-    - name: Verify deployment
-      run: |
-          echo "Waiting for deployment to complete..."
-          aws ecs wait services-stable \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --service ${{ env.ECS_SERVICE }} \
-            --region ${{ env.AWS_REGION }}
-          echo "Deployment successful!"
+        aws ecs update-service \
+          --cluster ${{ env.ECS_CLUSTER }} \
+          --service ${{ env.ECS_SERVICE }} \
+          --task-definition ${{ env.NEW_TASK_DEFINITION }} \
+          --force-new-deployment
